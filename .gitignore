@@ -1,0 +1,22 @@
+# data file
+*.txt
+*.pickle
+
+# model files
+*.h5
+
+# jupyter notebooks
+*.ipynb
+
+# Cache
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# compiled files
+*.pyc
+*.pyo
+
+# setup tools
+build/
+dist/
