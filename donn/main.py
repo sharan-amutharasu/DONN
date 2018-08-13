@@ -31,7 +31,7 @@ except ImportError:
 # In[4]:
 
 
-allowed_layers = ["input", "hidden", "activation", "output"]
+allowed_layers = ["input", "hidden", "activation", "output", "dropout"]
 
 
 # In[39]:
@@ -88,7 +88,7 @@ class Optimizer(object):
                         raise ValueError("Only the last layer can be 'output'")
                 self.data["layers"] = layers
             else:
-                self.data["layers"] = ["input", "activation", "hidden", "activation", "hidden", "activation", "output"]
+                self.data["layers"] = ["input", "activation", "hidden", "activation", "dropout", "hidden", "activation", "dropout", "output"]
             
             ## check and store parameters
             max_units_for_layers = []
