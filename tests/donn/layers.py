@@ -5,7 +5,7 @@
 
 
 try:
-    from keras.layers import Activation, Dense, Dropout
+    from keras.layers import Activation, Dense, Dropout, LSTM, Flatten
     from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
     from keras import regularizers
 except ImportError:
@@ -31,7 +31,7 @@ def get_activation_layer(activation):
     return Activation(activation)
 
 
-# In[6]:
+# In[4]:
 
 
 class Layer(object):
@@ -44,15 +44,20 @@ class Layer(object):
             self.kernel_initializer='normal'
             self.kernel_regularizer=regularizers.l2(0.01)
         
-    def add_to_model(self, model, params, count, input_dim=None, output_layer_units=None, mode=None):
+    def add_to_model(self, model, params, count, input_dim=None, input_shape=None, output_layer_units=None, mode=None, layers=None):
         """
         Add layer to model
         """
         ## Input Layer
         if self.layer_type == "input":
             units = params[str(self.layer_type + "_layer_" + str(count) + "_units")]
-            if input_dim is not None:
-                model.add(Dense(units, input_dim=input_dim, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer))
+            if input_shape is not None:
+                l = Dense(units, input_shape=input_shape, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer)
+                model.add(l)
+                print(units)
+                print(l.input_shape)
+                print(l.output_shape)
+#                 model.add(Dense(units, input_dim=input_dim, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer))
             else:
                 model.add(Dense(units, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer))
             return model
@@ -63,12 +68,20 @@ class Layer(object):
             if input_dim is not None:
                 model.add(Dense(units, input_dim=input_dim, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer))
             else:
-                model.add(Dense(units, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer))
+                l = Dense(units, kernel_initializer=self.kernel_initializer, kernel_regularizer=self.kernel_regularizer)
+                model.add(l)
+                print(units)
+                print(l.input_shape)
+                print(l.output_shape)
             return model
         
         ## Activation Layer
         if self.layer_type == "activation":
-            model.add(get_activation_layer(params["activation_function"]))
+            l = get_activation_layer(params["activation_function"])
+            model.add(l)
+#             model.add(get_activation_layer(params["activation_function"]))
+            print(l.input_shape)
+            print(l.output_shape)
             return model
         
         ## Dropout Layer
@@ -81,10 +94,42 @@ class Layer(object):
         ## Output Layer
         if self.layer_type == "output":
             if mode == "classifier":
-                model.add(Dense(output_layer_units, kernel_initializer=self.kernel_initializer, activation=params["output_activation_function"]))
+                model.add(Flatten())
+                l = Dense(output_layer_units, kernel_initializer=self.kernel_initializer)
+                model.add(l)
+                print(output_layer_units)
+                print(l.input_shape)
+                print(l.output_shape)
+                model.add(Dense(output_layer_units, kernel_initializer=self.kernel_initializer))
+                try:
+                    if params["output_activation_function"] != None:
+                        model.add(get_activation_layer(params["output_activation_function"]))
+                except KeyError:
+                    pass
             elif mode == "regressor":
                 model.add(Dense(output_layer_units, kernel_initializer=self.kernel_initializer))
             else:
                 raise ValueError("mode has to be 'regressor' or 'classifier'")
+            print("here")
+            return model
+        
+        ## LSTM Layer
+        if self.layer_type == "LSTM":
+            units = params[str(self.layer_type + "_layer_" + str(count) + "_units")]
+            count_LSTM = layers.count("LSTM")
+            if count < count_LSTM:
+                return_sequences = True
+            else:
+                return_sequences = False
+            if input_dim is not None:
+                model.add(LSTM(units, input_dim=input_dim, recurrent_activation=params["LSTM_recurrent_activation_function"], return_sequences=return_sequences))
+            else:
+                l = LSTM(units, recurrent_activation=params["LSTM_recurrent_activation_function"], return_sequences=return_sequences)
+                model.add(l)
+                print(return_sequences)
+                print(units)
+                print(l.input_shape)
+                print(l.output_shape)
+#                 model.add(LSTM(units, recurrent_activation=params["LSTM_recurrent_activation_function"], return_sequences=return_sequences))
             return model
 

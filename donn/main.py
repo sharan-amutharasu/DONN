@@ -18,6 +18,7 @@ try:
     from keras.models import load_model as keras_load_model
     from keras import optimizers
     from keras.utils import np_utils
+    from keras import backend as K
 
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import accuracy_score, mean_absolute_error
@@ -31,10 +32,10 @@ except ImportError:
 # In[4]:
 
 
-allowed_layers = ["input", "hidden", "activation", "output", "dropout"]
+allowed_layers = ["input", "hidden", "activation", "output", "dropout", "LSTM"]
 
 
-# In[39]:
+# In[ ]:
 
 
 class Optimizer(object):
@@ -67,8 +68,7 @@ class Optimizer(object):
             self.data = {"stage":0}
             
         if self.data["stage"] == 0:
-            self.data = {"combs":{}, "combs_comp":{}, "best":{"best":{}}, "grids":{}, "stage":0}
-            self.data["optimized"] = False
+            self.data = {"combs":{}, "combs_comp":{}, "best":{"best":{}}, "grids":{}, "stage":0, "completed_rounds":0}
             self.data["name"] = name
             self.data["directory"] = directory
             
@@ -82,9 +82,9 @@ class Optimizer(object):
                 for i in range(0,len(layers)):
                     if layers[i] not in allowed_layers:
                         raise ValueError("Unrecognised type of layer: %s " % layer)
-                    if i == layers[len(layers)-1] and layers[i] != "output":
+                    if i == len(layers)-1 and layers[i] != "output":
                         raise ValueError("The last layer must be 'output'. It cannot be %s " % layers[len(layers)-1])
-                    if i != layers[len(layers)-1] and layers[i] == "output":
+                    if i != len(layers)-1 and layers[i] == "output":
                         raise ValueError("Only the last layer can be 'output'")
                 self.data["layers"] = layers
             else:
@@ -102,6 +102,8 @@ class Optimizer(object):
                               "max_dropout_rate": self.get_default_values("dropout_rate", "range")[1],
                               "output_activation_function_options": self.get_default_values("output_activation_function", "range")
                              }
+            if 'LSTM' in self.data["layers"]:
+                default_params["LSTM_recurrent_activation_function_options"] = self.get_default_values("LSTM_recurrent_activation_function", "range")
             
             if parameters is not None:
                 self.data["parameters"] = {}
@@ -171,6 +173,9 @@ class Optimizer(object):
                                                       }
             self.data["base_range"]["output_activation_function"] = {"range":self.data["parameters"]["output_activation_function_options"]}
             
+            if 'LSTM' in self.data["layers"]:
+                self.data["base_range"]["LSTM_recurrent_activation_function"] = {"range":self.data["parameters"]["LSTM_recurrent_activation_function_options"]}
+                
             
             if mode.lower() == "regressor":
                 self.data["mode"] = 'regressor'
@@ -188,46 +193,78 @@ class Optimizer(object):
         """
         Returns the default values for parameters
         """
+        if typ == "datatype" and "layer" in param and "units" in param:
+            return "int"
         if param == "input" or param == "hidden" or param == "output":
             if typ == "range":
                 return [1,100]
             if typ == "min":
                 return 5
+            if typ == "datatype":
+                return "int"
         elif param == "activation" or param == "dropout":
             if typ == "range":
                 return [1,1]
             if typ == "min":
                 return 1
+            if typ == "datatype":
+                return "int"
         elif param == "activation_function":
             if typ == "range":
                 return ['relu']
-            else:
+            if typ == "min":
                 return None
+            if typ == "datatype":
+                return "str"
         elif param == "optimizer":
             if typ == "range":
                 return ['RMSprop']
-            else:
+            if typ == "min":
                 return None
+            if typ == "datatype":
+                return "str"
         elif param == "batch_size":
             if typ == "range":
                 return [128, 128]
             if typ == "min":
                 return 8
+            if typ == "datatype":
+                return "int"
         elif param == "epochs":
             if typ == "range":
                 return [5, 50]
             if typ == "min":
                 return 10
+            if typ == "datatype":
+                return "int"
         elif param == "dropout_rate":
             if typ == "range":
                 return [0, 0.4]
             if typ == "min":
                 return 0.1
+            if typ == "datatype":
+                return "float"
         elif param == "output_activation_function":
             if typ == "range":
                 return ['sigmoid']
-            else:
+            if typ == "min":
                 return None
+            if typ == "datatype":
+                return "str"
+        elif param == "LSTM":
+            if typ == "range":
+                return [1,10]
+            if typ == "min":
+                return 2
+            if typ == "datatype":
+                return "int"
+        elif param == "LSTM_recurrent_activation_function":
+            if typ == "range":
+                return ['hard_sigmoid']
+            if typ == "min":
+                return None
+            if typ == "datatype":
+                return "str"
         else:
             raise ValueError("Unrecongised parameter: %s" % param)
     
@@ -449,27 +486,8 @@ class Optimizer(object):
             self.data["stage"] = 2
         
         ## Save data to local file
-        print(self.metric)
-        print(self.test_metric)
-        print(self.loss)
-        print(self.data["output_layer_units"])
         donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return None
-        
-    
-    def get_param_type(self, param):
-        """
-        Returns the datatype for a given parameter
-        """
-        if "layer" in param:
-            return "int"
-        if param == "batch_size" or param == "epochs":
-            return "int"
-        if param == "dropout_rate":
-            return "float"
-        if param == "activation_function" or param == "output_activation_function" or param == "optimizer":
-            return "str"
-        raise ValueError("unrecognized paramaeter: %s" % param)
 
     def get_optimizer(self, name='Adadelta'):
         """
@@ -519,14 +537,13 @@ class Optimizer(object):
             layer = layers.Layer(layer_type=self.data["layers"][i])
             if i == 0:
                 count = 0
-                model = layer.add_to_model(model, params, count+1, input_dim=x_train.shape[1])
+                model = layer.add_to_model(model, params, count+1, input_dim=x_train.shape[1], input_shape=x_train.shape)
             else:
                 count = self.data["layers"][:i].count(self.data["layers"][i])
                 if i == len(self.data["layers"]) - 1:
-                    model = layer.add_to_model(model, params, count+1, output_layer_units=self.data["output_layer_units"], mode=self.data["mode"])
+                    model = layer.add_to_model(model, params, count+1, output_layer_units=self.data["output_layer_units"], mode=self.data["mode"], layers=self.data["layers"])
                 else:
-                    model = layer.add_to_model(model, params, count+1)
-        
+                    model = layer.add_to_model(model, params, count+1, layers=self.data["layers"])
         ## Compile the model
         if self.data["mode"] == "classifier":
             model.compile(loss=loss,
@@ -535,7 +552,17 @@ class Optimizer(object):
         elif self.data["mode"] == "regressor":
             model.compile(loss=loss,
                           optimizer=self.get_optimizer(params["optimizer"]))
-        
+        print("here3")
+        print(params['batch_size'])
+        x_train = x_train.reshape((1, x_train.shape[0], x_train.shape[1]))
+        x_val = x_val.reshape((1, x_val.shape[0], x_val.shape[1]))
+        try:
+            y_train = y_train.reshape((1, y_train.shape[0], y_train.shape[1]))
+            y_val = y_val.reshape((1, y_val.shape[0], y_val.shape[1]))
+        except IndexError:
+            y_train = y_train.reshape((1, y_train.shape[0], 1))
+            y_val = y_val.reshape((1, y_val.shape[0], 1))
+        print(x_train.shape, x_val.shape, y_train.shape, y_val.shape)
         ## Fit the model with or without validation data
         if x_val is not None and y_val is not None:
             model.fit(x_train, 
@@ -569,7 +596,7 @@ class Optimizer(object):
         Given a range for the values of the parameters,
         Returns the list of options for combinations
         """
-        typ = self.get_param_type(p)
+        typ = self.get_default_values(p, typ="datatype")
 #         rn = self.data["base_range"][p]
         if typ == "int" or typ == "float":
             if len(rn["range"]) == 0 or len(rn["range"]) > 2:
@@ -672,11 +699,11 @@ class Optimizer(object):
         for comb in combs:
             c = {}
             for p in comb.keys():
-                if p.startswith("input_layer") or p.startswith("hidden_layer") or self.get_param_type(p) == "int":
+                if p.startswith("input_layer") or p.startswith("hidden_layer") or self.get_default_values(p, typ="datatype") == "int":
                     c[p] = int(comb[p])
-                elif self.get_param_type(p) == "str":
+                elif self.get_default_values(p, typ="datatype") == "str":
                     c[p] = comb[p]
-                elif self.get_param_type(p) == "float":
+                elif self.get_default_values(p, typ="datatype") == "float":
                     c[p] = float(comb[p])
             r.append(c)
         return r
@@ -699,7 +726,7 @@ class Optimizer(object):
         """
         new = {}
         for p in grid.keys():
-            typ = self.get_param_type(p)
+            typ = self.get_default_values(p, typ="datatype")
             if typ == "str":
                 new[p] = {"range":[b_params[p]], "type":typ}
             else:
@@ -811,6 +838,7 @@ class Optimizer(object):
         
         ## Check if all combinations have been tried
         if len(self.data["combs"][n]) == sum(self.data["combs_comp"][n]):
+            self.data["completed_rounds"] = int(n)
             return self
 #         print("Round grid:")
 #         print(self.data["grids"][n])
@@ -835,33 +863,23 @@ class Optimizer(object):
             ## If no best scores for the round are present, add score to best scores
             if len(self.data["best"][n]) < self.level + 1:
                 if str(score) not in self.data["best"][n].keys():
-                    print("Best1")
-                    print(self.data["best"][n])
-                    print(self.level)
-                    print(score)
                     self.data["best"][n][str(score)] = comb
             ## If best scores for the round are present, compare with the least score amongst them and store the current score if it is better than the least
             else:
                 if self.data["test_metric_direction"] == "positive":
                     min_score = sorted(map(float, self.data["best"][n].keys()))[0]
                     if score > min_score:
-                        print("Best2")
                         self.data["best"][n][str(score)] = comb
                         del self.data["best"][n][str(min_score)]
                 elif self.data["test_metric_direction"] == "negative":
                     max_score = sorted(map(float, self.data["best"][n].keys()))[len(self.data["best"][n].keys()) - 1]
                     if score < max_score:
-                        print("Best2")
                         self.data["best"][n][str(score)] = comb
                         del self.data["best"][n][str(max_score)]
             
             ## If no overall best scores are present, add score to best scores
             if len(self.data["best"]["best"]) < self.level + 1:
                 if str(score) not in self.data["best"]["best"].keys():
-                    print("Best3")
-                    print(self.data["best"]["best"])
-                    print(self.level)
-                    print(score)
                     self.data["best"]["best"][str(score)] = comb
                     model.save(os.path.join(self.data["directory"], 
                                             str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -872,7 +890,6 @@ class Optimizer(object):
                 if self.data["test_metric_direction"] == "positive":
                     min_score = sorted(map(float, self.data["best"]["best"].keys()))[0]
                     if score > min_score:
-                        print("Best4")
                         self.data["best"]["best"][str(score)] = comb
                         model.save(os.path.join(self.data["directory"], 
                                                 str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -882,10 +899,14 @@ class Optimizer(object):
                                                    str(self.data["name"] + "-model-" + str(min_score) + "-s.h5")))
                         except FileNotFoundError:
                             pass
+                        if self.verbose >= 1:
+                            print("New best parameter combination found with score: %s" % score)
+                        if self.verbose >= 2:
+                            print("Combination: ")
+                            print(comb)
                 elif self.data["test_metric_direction"] == "negative":
                     max_score = sorted(map(float, self.data["best"]["best"].keys()))[len(self.data["best"][n].keys()) - 1]
                     if score < max_score:
-                        print("Best4")
                         self.data["best"]["best"][str(score)] = comb
                         model.save(os.path.join(self.data["directory"], 
                                                 str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -895,6 +916,11 @@ class Optimizer(object):
                                                    str(self.data["name"] + "-model-" + str(max_score) + "-s.h5")))
                         except FileNotFoundError:
                             pass
+                        if self.verbose >= 1:
+                            print("New best parameter combination found with score: %s" % score)
+                        if self.verbose >= 2:
+                            print("Combination: ")
+                            print(comb)
 
             self.data["combs_comp"][n][i] = True
             donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
@@ -908,8 +934,8 @@ class Optimizer(object):
         if self.data["stage"] == 4:
             self.data["stage"] = 5
         if len(self.data["combs"][n]) == 1:
-            self.data["optimized"] = True
             self.data["stage"] = 9
+        self.data["completed_rounds"] = n
         donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return self
     
@@ -946,23 +972,18 @@ class Optimizer(object):
                 
         
         ## Check how many rounds and combinations have been run
-        rounds = list(map(int, self.data["combs"].keys()))
-        if len(rounds) == 0:
-            c_round = 1
-        else:
-            rounds.sort()
-            c_round = rounds[len(rounds)-1]
+        c_round = self.data["completed_rounds"]
         
         ## Run each round of optimization
-        while c_round <= max_rounds:
-            if self.data["optimized"] == True:
-                print("Best parameters found")
-                break
-            print("Running round: %s" % c_round)
-            self.run_round(c_round)
+        while c_round + 1 <= max_rounds:
+            print("Running round: %s out of %s" % (c_round + 1, max_rounds))
+            self.run_round(c_round + 1)
             gc.collect()
             c_round += 1
-        print("%s rounds of optimization completed" % str(c_round-1))
+            if self.data["stage"] == 9:
+                print("Best parameters found")
+                break
+        print("%s rounds of optimization completed" % str(c_round))
         return self
         
     def get_data(self):
@@ -972,7 +993,7 @@ class Optimizer(object):
         return self.data
 
 
-# In[6]:
+# In[ ]:
 
 
 def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), probabilities=False, use_one_model=False):
@@ -993,8 +1014,7 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
     
     ## If no training has been done output information
     if data["stage"] <= 2:
-        print("Optimizer cannot predict before training")
-        return None
+        raise ValueError("Optimizer cannot predict before training")
     
     ## if the firt model has been trained and no best model has been found use the first model
     elif data["stage"] == 3:
@@ -1019,8 +1039,7 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
                 continue
 
         if len(models) == 0:
-            print("no stored models found")
-            return None
+            raise ValueError("no stored models found")
         
         if use_one_model == True:
             if data["test_metric_direction"] == "positive":
