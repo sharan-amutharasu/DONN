@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 try:
@@ -32,7 +32,7 @@ except ImportError:
 # In[4]:
 
 
-allowed_layers = ["input", "hidden", "activation", "output", "dropout", "LSTM"]
+allowed_layers = ["input", "hidden", "activation", "output", "dropout"]
 
 
 # In[ ]:
@@ -56,7 +56,7 @@ class Optimizer(object):
     """
     
     # Initialize instance
-    def __init__(self, mode, name="donn_optimizer", directory=os.getcwd(), layers=None, parameters=None, parameter_precisions=None):
+    def __init__(self, mode, name="donn_optimizer", directory=None, layers=None, parameters=None, parameter_precisions=None):
         
         # If data does not exist for the current instance name, create it
         self.data_filename = str(name + "-data.pickle")
@@ -70,8 +70,10 @@ class Optimizer(object):
         if self.data["stage"] == 0:
             self.data = {"combs":{}, "combs_comp":{}, "best":{"best":{}}, "grids":{}, "stage":0, "completed_rounds":0}
             self.data["name"] = name
-            self.data["directory"] = directory
-            
+            if directory == None:
+                self.data["directory"] = os.getcwd()
+            else:
+                self.data["directory"] = directory
             
             ## Check the provided layers
             if layers is not None:
@@ -102,8 +104,6 @@ class Optimizer(object):
                               "max_dropout_rate": self.get_default_values("dropout_rate", "range")[1],
                               "output_activation_function_options": self.get_default_values("output_activation_function", "range")
                              }
-            if 'LSTM' in self.data["layers"]:
-                default_params["LSTM_recurrent_activation_function_options"] = self.get_default_values("LSTM_recurrent_activation_function", "range")
             
             if parameters is not None:
                 self.data["parameters"] = {}
@@ -172,9 +172,6 @@ class Optimizer(object):
                                                        "min":self.data["parameter_precisions"]["precision_dropout_rate"]
                                                       }
             self.data["base_range"]["output_activation_function"] = {"range":self.data["parameters"]["output_activation_function_options"]}
-            
-            if 'LSTM' in self.data["layers"]:
-                self.data["base_range"]["LSTM_recurrent_activation_function"] = {"range":self.data["parameters"]["LSTM_recurrent_activation_function_options"]}
                 
             
             if mode.lower() == "regressor":
@@ -247,20 +244,6 @@ class Optimizer(object):
         elif param == "output_activation_function":
             if typ == "range":
                 return ['sigmoid']
-            if typ == "min":
-                return None
-            if typ == "datatype":
-                return "str"
-        elif param == "LSTM":
-            if typ == "range":
-                return [1,10]
-            if typ == "min":
-                return 2
-            if typ == "datatype":
-                return "int"
-        elif param == "LSTM_recurrent_activation_function":
-            if typ == "range":
-                return ['hard_sigmoid']
             if typ == "min":
                 return None
             if typ == "datatype":
@@ -451,7 +434,6 @@ class Optimizer(object):
                     self.test_metric = test_metric
                 else:
                     self.test_metric = accuracy_score
-            print(self.data["classifier_type"])
                 
                         
         elif self.data["mode"] == "regressor":
@@ -537,7 +519,7 @@ class Optimizer(object):
             layer = layers.Layer(layer_type=self.data["layers"][i])
             if i == 0:
                 count = 0
-                model = layer.add_to_model(model, params, count+1, input_dim=x_train.shape[1], input_shape=x_train.shape)
+                model = layer.add_to_model(model, params, count+1, input_dim=x_train.shape[1])
             else:
                 count = self.data["layers"][:i].count(self.data["layers"][i])
                 if i == len(self.data["layers"]) - 1:
@@ -552,17 +534,6 @@ class Optimizer(object):
         elif self.data["mode"] == "regressor":
             model.compile(loss=loss,
                           optimizer=self.get_optimizer(params["optimizer"]))
-        print("here3")
-        print(params['batch_size'])
-        x_train = x_train.reshape((1, x_train.shape[0], x_train.shape[1]))
-        x_val = x_val.reshape((1, x_val.shape[0], x_val.shape[1]))
-        try:
-            y_train = y_train.reshape((1, y_train.shape[0], y_train.shape[1]))
-            y_val = y_val.reshape((1, y_val.shape[0], y_val.shape[1]))
-        except IndexError:
-            y_train = y_train.reshape((1, y_train.shape[0], 1))
-            y_val = y_val.reshape((1, y_val.shape[0], 1))
-        print(x_train.shape, x_val.shape, y_train.shape, y_val.shape)
         ## Fit the model with or without validation data
         if x_val is not None and y_val is not None:
             model.fit(x_train, 
@@ -939,7 +910,7 @@ class Optimizer(object):
         donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return self
     
-    def optimize(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, loss=None, metric=None, test_metric=None, test_metric_direction=None, verbose=1, max_rounds=2, level=1):
+    def optimize(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, loss=None, metric=None, test_metric=None, test_metric_direction=None, verbose=1, max_rounds=5, level=2):
         """Main optimization function.
         Checks data to find the status of optimization, 
         Runs each round of optimization
