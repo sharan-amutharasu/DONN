@@ -57,16 +57,16 @@ predictions = donn.predict(prediction_data_x)
 
 ```
 ### Arguments
-mode: Mode of operation based on the nature of prediction task. Allowed values are:
-    "classifier": If you want to predict discrete labels for datapoints (Eg. Classify whether the data corresponds to a cat or a dog)
-    "regressor": If you want to predict continuous values for datapoints (Eg. Predict the weight of the dog described by the data)
+    mode: Mode of operation based on the nature of prediction task. Allowed values are:
+        "classifier": If you want to predict discrete labels for datapoints (Eg. Classify whether the data corresponds to a cat or a dog)
+        "regressor": If you want to predict continuous values for datapoints (Eg. Predict the weight of the dog described by the data)
 
-training_data_x: Data for training (as numpy array)
-training_data_y: Labels for training  (as numpy array or list)
-testing_data_x: Data for testing  (as numpy array)
-testing_data_y: Labels for testing  (as numpy array or list)
+    training_data_x: Data for training (as numpy array)
+    training_data_y: Labels for training  (as numpy array or list)
+    testing_data_x: Data for testing  (as numpy array)
+    testing_data_y: Labels for testing  (as numpy array or list)
 
-prediction_data_x: Data for prediction (as numpy array)
+    prediction_data_x: Data for prediction (as numpy array)
 
 For advanced users, more control over the process is possible. Here is some detailed documentation for that purpose:
 ### Algorithm
@@ -75,7 +75,7 @@ The best n (again, controlled by user's choice of optimization complexity) combi
 In successive rounds the parameter space is narrowed down further and further until the best parameters are found (or user defined margins are reached) 
 
 ## Documentation
-Currently supported types of networks: MLP (Multi Layer Perceptron)
+Currently supported types of networks: MLP (Multi Layer Perceptron). 
 Here is an example with all the possible arguments:
 ```python
 
@@ -87,176 +87,177 @@ predictions = donn.predict(x_predict, optimizer_name="donn_optimizer", directory
 
 ### Function: donn.Optimizer():
 #### Arguments
-mode: Mode of operation based on the nature of prediction task. 
-    Allowed values:
-        "classifier": If you want to predict discrete labels for datapoints
-        "regressor": If you want to predict continuous values for datapoints
-name: Name given to optimizer. Files related to the optimizer are stored using this name. If an optimizer already exists in the folder and a new name is not given, it will be overwritten.
-    So, it is advisable to give a new name to each optimizer.
-    Default value: "donn_optimizer"
-directory: Directory where the optimizer files are stored. 
-    Default value: The current working directory where the script is executed
-layers: The sequence of layers in the neural network.
-    Default value: ["input", "activation", "hidden", "activation", "dropout", "hidden", "activation", "dropout", "output"]
-    Allowed values: List containing any number of the following strings
-        "input" : Input layer into which the data is fed(Dense)
-        "hidden" : Fully connected hidden layer of cells (Dense)
-        "output" : Output layer from where the label/prediction is received(Dense)
-        "activation": Activation layer that scales the output of the previous layer according based on a defined function
-        "dropout" : Drops out a defined fraction of the outputs from the previous layer
-parameters: Parameters controlling the network
-    Default value: {"max_units_for_layers":[100, 100, 100, 1, 1, 100, 1, 1, 100],
-                    "activation_function_options": ['relu'],
-                    "optimizer_options": ['RMSprop'],
-                    "batch_size_range": [128, 128],
-                    "max_epochs": 50,
-                    "max_dropout_rate": 0.4,
-                    "output_activation_function_options": ['sigmoid']
-                    }
-    Allowed values: The allowed values for each individual parameter are:
-        max_units_for_layers: List of integers. List should be the same length as 'layers'. Each item in the list gives the maximum number of cells that the corresponding layer can have.
-        activation_function_options: List containing any number of the following strings:
-            "relu"
-            "softmax"
-            "elu"
-            "selu"
-            "softplus"
-            "softsign"
-            "tanh"
-            "sigmoid"
-            "hard_sigmoid"
-            "PReLU"
-            "LeakyReLU"
-            "ThresholdedReLU"
-            Or a custom function built using Keras backend
-            All the provided functions in the list will be tried and the best one will be chosen
-        optmizer_options: List containing any number of the following strings:
-            "SGD"
-            "RMSprop"
-            "Adagrad"
-            "Adadelta"
-            "Adam"
-            "Adamax"
-            "Nadam"
-            Or a custom optimizer built using Keras backend
-            All the provided optimization algorithms in the list will be tried and the best one will be chosen
-        batch_size_range: List containing two integers. i.e. the minimum and the maximum batch sizes to be tried. Eg. [64, 512]
-        max_epochs: Positive integer. Maximum number of epochs of training to be tried.
-        max_dropout_rate: Float between 0 and 1. Maximum Dropout rate to be tried
-        output_activation_function_options: List containing any number of the following strings:
-            "relu"
-            "softmax"
-            "elu"
-            "selu"
-            "softplus"
-            "softsign"
-            "tanh"
-            "sigmoid"
-            "hard_sigmoid"
-            "PReLU"
-            "LeakyReLU"
-            "ThresholdedReLU"
-            Or a custom function built using Keras backend
-            All the provided functions in the list will be tried and the best one will be chosen
+    mode: Mode of operation based on the nature of prediction task. 
+        Allowed values:
+            "classifier": If you want to predict discrete labels for datapoints
+            "regressor": If you want to predict continuous values for datapoints
+    name: Name given to optimizer. Files related to the optimizer are stored using this name. If an optimizer already exists in the folder and a new name is not given, it will be overwritten.
+        So, it is advisable to give a new name to each optimizer.
+        Default value: "donn_optimizer"
+    directory: Directory where the optimizer files are stored. 
+        Default value: The current working directory where the script is executed
+    layers: The sequence of layers in the neural network.
+        Default value: ["input", "activation", "hidden", "activation", "dropout", "hidden", "activation", "dropout", "output"]
+        Allowed values: List containing any number of the following strings
+            "input" : Input layer into which the data is fed(Dense)
+            "hidden" : Fully connected hidden layer of cells (Dense)
+            "output" : Output layer from where the label/prediction is received(Dense)
+            "activation": Activation layer that scales the output of the previous layer according based on a defined function
+            "dropout" : Drops out a defined fraction of the outputs from the previous layer
+    parameters: Parameters controlling the network
+        Default value: {"max_units_for_layers":[100, 100, 100, 1, 1, 100, 1, 1, 100],
+                        "activation_function_options": ['relu'],
+                        "optimizer_options": ['RMSprop'],
+                        "batch_size_range": [128, 128],
+                        "max_epochs": 50,
+                        "max_dropout_rate": 0.4,
+                        "output_activation_function_options": ['sigmoid']
+                        }
+        Allowed values: The allowed values for each individual parameter are:
+            max_units_for_layers: List of integers. List should be the same length as 'layers'. Each item in the list gives the maximum number of cells that the corresponding layer can have.
+            activation_function_options: List containing any number of the following strings:
+                "relu"
+                "softmax"
+                "elu"
+                "selu"
+                "softplus"
+                "softsign"
+                "tanh"
+                "sigmoid"
+                "hard_sigmoid"
+                "PReLU"
+                "LeakyReLU"
+                "ThresholdedReLU"
+                Or a custom function built using Keras backend
+                All the provided functions in the list will be tried and the best one will be chosen
+            optmizer_options: List containing any number of the following strings:
+                "SGD"
+                "RMSprop"
+                "Adagrad"
+                "Adadelta"
+                "Adam"
+                "Adamax"
+                "Nadam"
+                Or a custom optimizer built using Keras backend
+                All the provided optimization algorithms in the list will be tried and the best one will be chosen
+            batch_size_range: List containing two integers. i.e. the minimum and the maximum batch sizes to be tried. Eg. [64, 512]
+            max_epochs: Positive integer. Maximum number of epochs of training to be tried.
+            max_dropout_rate: Float between 0 and 1. Maximum Dropout rate to be tried
+            output_activation_function_options: List containing any number of the following strings:
+                "relu"
+                "softmax"
+                "elu"
+                "selu"
+                "softplus"
+                "softsign"
+                "tanh"
+                "sigmoid"
+                "hard_sigmoid"
+                "PReLU"
+                "LeakyReLU"
+                "ThresholdedReLU"
+                Or a custom function built using Keras backend
+                All the provided functions in the list will be tried and the best one will be chosen
 
-parameter_precisions: The minimum margin between the options for parameters that should be tried. i.e. The level of precision expected for each parameter
-    Default value: {"precision_for_layers":[5, 5, 5, 1, 1, 5, 1, 1, 5],
-                    "precision_batch_size": 8,
-                    "precision_epochs": 10,
-                    "precision_dropout_rate": 0.1
-                    }
-    Allowed values: The allowed values for each individual parameter are:
-        precision_for_layers: List of integers. List should be the same length as 'layers'. Each item in the list gives the minimum precision for the number of cells that the corresponding layer can have.
-        precision_batch_size: Positive integer
-        precision_epochs: Positive integer
-        precision_dropout_rate: Float between 0 and 1
+    parameter_precisions: The minimum margin between the options for parameters that should be tried. i.e. The level of precision expected for each parameter
+        Default value: {"precision_for_layers":[5, 5, 5, 1, 1, 5, 1, 1, 5],
+                        "precision_batch_size": 8,
+                        "precision_epochs": 10,
+                        "precision_dropout_rate": 0.1
+                        }
+        Allowed values: The allowed values for each individual parameter are:
+            precision_for_layers: List of integers. List should be the same length as 'layers'. Each item in the list gives the minimum precision for the number of cells that the corresponding layer can have.
+            precision_batch_size: Positive integer
+            precision_epochs: Positive integer
+            precision_dropout_rate: Float between 0 and 1
 #### Returns:
 Optimizer object (Unoptimized)
 
 ### Function: Optimizer.optimize():
 #### Arguments
-training_data_x: Data for training (as numpy array)
-training_data_y: Labels for training  (as numpy array or list)
-testing_data_x: Data for testing  (as numpy array)
-testing_data_y: Labels for testing  (as numpy array or list)
-validation_data_x: Data for validation (as numpy array)
-validation_data_y: Labels for validaiton (as numpy array or list)
-loss: Loss/Cost function used by the network
-    Default values: 
-        "mean_absolute_error" (for regression)
-        "binary_crossentropy" (for single label classification)
-        "categorical_crossentropy" (for multi label classification)
-    Allowed values: Any one of the following strings:
-        "mean_squared_error"
-        "mean_absolute_error"
-        "mean_absolute_percentage_error"
-        "mean_squared_logarithmic_error"
-        "squared_hinge"
-        "hinge"
-        "categorical_hinge"
-        "logcosh"
-        "categorical_crossentropy"
-        "sparse_categorical_crossentropy"
-        "binary_crossentropy"
-        "kullback_leibler_divergence"
-        "poisson"
-        "cosine_proximity"
-        Or a custom loss function built using Keras backend
-metric: Metric used to evaluate the performance of the network during training and validation
-    Default values:
-        "binary_accuracy" (for single label classification)
-        "categorical_accuracy" (for multi label classification)
-        "mae" (for regression)
-    Allowed values: Any one of the following strings:
-        "mse"
-        "mae"
-        "categorical_accuracy"
-        "sparse_categorical_accuracy"
-        "binary_accuracy"
-        "top_k_categorical_accuracy"
-        "sparse_top_k_categorical_accuracy"
-        Or a custom metric built using Keras backend
-test_metric: Metric used to evaluate the performance of the network during testing
-    Default values:
-        sklearn.metrics.accuracy_score (for classification)
-        sklearn.metrics.mean_absolute_error (for regression)
-    Allowed values:
-        Any metric function that accepts true values and predicted values respectively as the first two parameters and returns a integer or float score
-test_metric_direction: Whether the test metric score is positively or negatively correlated with performance
-    Allowed values:
-        "positive" (if higher score is better. Eg. accuracy)
-        "negative" (if lower score is better. Eg. error)
-verbose: Amount of print statements displayed during the run. 
-    Default value: 1
-    Allowed values: Integer between 0 and 3
-**max_rounds: Maximum number of rounds of optimization to be carried out. The higher the value, the better the results and higher the resource consumption
-    Default value: 5
-    Allowed values: Positive integer
-level: Degree of optimization complexity. The higher the value, the better the results and higher the resource consumption
-    Default value: 2
-    Allowed values: Positive integer **
+    training_data_x: Data for training (as numpy array)
+    training_data_y: Labels for training  (as numpy array or list)
+    testing_data_x: Data for testing  (as numpy array)
+    testing_data_y: Labels for testing  (as numpy array or list)
+    validation_data_x: Data for validation (as numpy array)
+    validation_data_y: Labels for validaiton (as numpy array or list)
+    loss: Loss/Cost function used by the network
+        Default values: 
+            "mean_absolute_error" (for regression)
+            "binary_crossentropy" (for single label classification)
+            "categorical_crossentropy" (for multi label classification)
+        Allowed values: Any one of the following strings:
+            "mean_squared_error"
+            "mean_absolute_error"
+            "mean_absolute_percentage_error"
+            "mean_squared_logarithmic_error"
+            "squared_hinge"
+            "hinge"
+            "categorical_hinge"
+            "logcosh"
+            "categorical_crossentropy"
+            "sparse_categorical_crossentropy"
+            "binary_crossentropy"
+            "kullback_leibler_divergence"
+            "poisson"
+            "cosine_proximity"
+            Or a custom loss function built using Keras backend
+    metric: Metric used to evaluate the performance of the network during training and validation
+        Default values:
+            "binary_accuracy" (for single label classification)
+            "categorical_accuracy" (for multi label classification)
+            "mae" (for regression)
+        Allowed values: Any one of the following strings:
+            "mse"
+            "mae"
+            "categorical_accuracy"
+            "sparse_categorical_accuracy"
+            "binary_accuracy"
+            "top_k_categorical_accuracy"
+            "sparse_top_k_categorical_accuracy"
+            Or a custom metric built using Keras backend
+    test_metric: Metric used to evaluate the performance of the network during testing
+        Default values:
+            sklearn.metrics.accuracy_score (for classification)
+            sklearn.metrics.mean_absolute_error (for regression)
+        Allowed values:
+            Any metric function that accepts true values and predicted values respectively as the first two parameters and returns a integer or float score
+    test_metric_direction: Whether the test metric score is positively or negatively correlated with performance
+        Allowed values:
+            "positive" (if higher score is better. Eg. accuracy)
+            "negative" (if lower score is better. Eg. error)
+    verbose: Amount of print statements displayed during the run. 
+        Default value: 1
+        Allowed values: Integer between 0 and 3
+    max_rounds: Maximum number of rounds of optimization to be carried out. The higher the value, the better the results and higher the resource consumption
+        Default value: 5
+        Allowed values: Positive integer
+    level: Degree of optimization complexity. The higher the value, the better the results and higher the resource consumption
+        Default value: 2
+        Allowed values: Positive integer
 
 #### Returns:
 Optimizer object (optimized)
 
 ### Funciton: donn.predict():
 #### Arguments
-x_predict: Data for prediction (as numpy array)
-optimizer_name: Name of the optimizer to use for prediction.
-    Default value: "donn_optimizer"
-    Allowed values: String
-directory: Directory in which the optimizer data is present
-    Default value: Current working directory
-    Allowed values: Any legal path in the system
-probabilities: If true, in classifier mode, instead of just returning the predicitons, the function returns two objects: (1) The classes (2) The predicted probabilities
-    Default value: False
-    Allowed values: True, False
-use_one_model: If true, instead of using multiple best models and combining their results, prediction is made using only the one best model
-    Default value: False
-    Allowed values: True, False
+    x_predict: Data for prediction (as numpy array)
+    optimizer_name: Name of the optimizer to use for prediction.
+        Default value: "donn_optimizer"
+        Allowed values: String
+    directory: Directory in which the optimizer data is present
+        Default value: Current working directory
+        Allowed values: Any legal path in the system
+    probabilities: If true, in classifier mode, instead of just returning the predicitons, the function returns two objects: (1) The classes (2) The predicted probabilities
+        Default value: False
+        Allowed values: True, False
+    use_one_model: If true, instead of using multiple best models and combining their results, prediction is made using only the one best model
+        Default value: False
+        Allowed values: True, False
 
 #### Returns:
 Predictions: Numpy array of same length as 'x_predict' (If probabilities=False)
+
 Classes, Prediction_probabilites: List of class names, Numpy array of same length as 'x_predict' (If probabilities=False)
 
 
