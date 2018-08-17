@@ -1,7 +1,7 @@
 
 # DONN: Deep Optimized Nerual Networks
 
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/sharan-amutharasu/donn/master/LICENSE)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/sharan-amutharasu/DONN/blob/master/LICENSE)
 
 Machine learning has unarguably been, the biggest contribution of data science to modern science, eliminating the need for human decision making in many processes.
 
@@ -84,8 +84,9 @@ optimizer.optimize(training_data_x, training_data_y, testing_data_x, testing_dat
 predictions = donn.predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), probabilities=False, use_one_model=False)
 
 ```
-Function: donn.Optimizer():
-### Arguments
+
+### Function: donn.Optimizer():
+#### Arguments
 mode: Mode of operation based on the nature of prediction task. 
     Allowed values:
         "classifier": If you want to predict discrete labels for datapoints
@@ -169,12 +170,11 @@ parameter_precisions: The minimum margin between the options for parameters that
         precision_batch_size: Positive integer
         precision_epochs: Positive integer
         precision_dropout_rate: Float between 0 and 1
-
-### Returns:
+#### Returns:
 Optimizer object (Unoptimized)
 
-Function: Optimizer.optimize():
-### Arguments
+### Function: Optimizer.optimize():
+#### Arguments
 training_data_x: Data for training (as numpy array)
 training_data_y: Labels for training  (as numpy array or list)
 testing_data_x: Data for testing  (as numpy array)
@@ -236,11 +236,11 @@ level: Degree of optimization complexity. The higher the value, the better the r
     Default value: 2
     Allowed values: Positive integer **
 
-### Returns:
+#### Returns:
 Optimizer object (optimized)
 
-Funciton: donn.predict():
-### Arguments
+### Funciton: donn.predict():
+#### Arguments
 x_predict: Data for prediction (as numpy array)
 optimizer_name: Name of the optimizer to use for prediction.
     Default value: "donn_optimizer"
@@ -255,7 +255,7 @@ use_one_model: If true, instead of using multiple best models and combining thei
     Default value: False
     Allowed values: True, False
 
-### Returns:
+#### Returns:
 Predictions: Numpy array of same length as 'x_predict' (If probabilities=False)
 Classes, Prediction_probabilites: List of class names, Numpy array of same length as 'x_predict' (If probabilities=False)
 
