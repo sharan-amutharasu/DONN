@@ -6,13 +6,10 @@
 
 try:
     import os
-    import datetime
     import itertools as it
     import gc
     import pickle
     import numpy as np
-#     import tools
-#     import layers
 
     from keras.models import Sequential
     from keras.models import load_model as keras_load_model
@@ -824,7 +821,6 @@ class Optimizer(object):
             
             if self.verbose >= 1:
                 print("Trying combination: %s" % str(i+1))
-#                 print(datetime.datetime.now())
             if self.verbose >= 2:
                 print(comb)
             model, score = self.run_comb(comb)

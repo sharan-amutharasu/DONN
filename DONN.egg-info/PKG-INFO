@@ -1,0 +1,25 @@
+Metadata-Version: 2.1
+Name: donn
+Version: 1.1.1
+Summary: Deep Optimized Neural Networks
+Home-page: https://github.com/sharan-amutharasu/donn
+Author: Sharan Amutharasu
+Author-email: sharan.amutharasu@gmail.com
+License: MIT
+Download-URL: https://github.com/sharan-amutharasu/donn/tarball/1.1.1
+Description: 
+        DONN (Deep Optimized Neural Networks) is a library that can be used by people new to deep learning, to build optimized neural networks.
+        
+        Read the documentation at: https://github.com/sharan-amutharasu/donn
+        
+        DONN is compatible with Python 3
+        and is distributed under the MIT license.
+        
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Provides-Extra: tests
