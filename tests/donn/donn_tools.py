@@ -4,14 +4,11 @@
 # In[20]:
 
 
-try:
-    import pickle
-    import time
-    import string
-    import random
-    import os
-except ImportError:
-    print("Required modules not installed")
+import pickle
+import time
+import string
+import random
+import os
 
 
 # In[21]:

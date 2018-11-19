@@ -4,14 +4,14 @@
 # In[ ]:
 
 
-import tools
+from . import donn_tools
+from . import layers
 import os
 import datetime
 import itertools as it
 import gc
 import pickle
 import numpy as np
-import layers
 
 
 # In[2]:
@@ -67,7 +67,7 @@ class Optimizer(object):
         # If data does not exist for the current instance name, create it
         self.data_filename = str(name + "-data.pickle")
         try:
-            self.data = tools.read_data(directory, self.data_filename)
+            self.data = donn_tools.read_data(directory, self.data_filename)
             print("Optimizer found with given name. Loading the old optimizer")
         except FileNotFoundError:
             print("No old optimizer data found for given name. Initiating new optimizer")
@@ -200,7 +200,7 @@ class Optimizer(object):
             self.data["stage"] = 1
         
         ## Save data to local file
-        tools.save_data(self.data, self.data["directory"], self.data_filename)
+        donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         print("Optimizer created")
     
 #     def get_default_values(self, param, typ):
@@ -454,7 +454,7 @@ class Optimizer(object):
         print(self.test_metric)
         print(self.loss)
         print(self.data["output_layer_units"])
-        tools.save_data(self.data, self.data["directory"], self.data_filename)
+        donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return None
         
     
@@ -806,7 +806,7 @@ class Optimizer(object):
             self.data["combs"][n] = combinations
             self.data["combs_comp"][n] = [False] * len(combinations)
             self.data["best"][n] = {}
-            tools.save_data(self.data, self.data["directory"], self.data_filename)
+            donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
             del combinations
         
         ## Check if all combinations have been tried
@@ -897,7 +897,7 @@ class Optimizer(object):
                             pass
 
             self.data["combs_comp"][n][i] = True
-            tools.save_data(self.data, self.data["directory"], self.data_filename)
+            donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
             
             ## Clear memory
             del comb, model, score
@@ -995,7 +995,7 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
     """
     ## Read data
     data_filename = str(optimizer_name + "-data.pickle")
-    data = tools.read_data(directory, data_filename)
+    data = donn_tools.read_data(directory, data_filename)
     
     ## If no training has been done output information
     if data["stage"] <= 2:
@@ -1073,258 +1073,154 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
 # In[7]:
 
 
-from sklearn.datasets import load_boston
-
-
-# In[8]:
-
-
-X, Y = load_boston(return_X_y=True)
-
-
-# In[11]:
-
-
-cut_v = round(X.shape[0] * 0.8)
-cut_t = round(X.shape[0] * 0.9)
-cut_x = round(X.shape[0])
-# cut_y = round(X.shape[0] * 0.11)
-x_train = X[:cut_v]
-y_train = Y[:cut_v]
-x_val = X[cut_v:cut_t]
-y_val = Y[cut_v:cut_t]
-x_test = X[cut_t:]
-y_test = Y[cut_t:]
-
-
-# In[10]:
-
-
-op = Optimizer(name="donn_optimizer", mode="regressor")
-
-
-# In[12]:
-
-
-op.optimize(x_train,
-            y_train,
-            x_test,
-            y_test,
-            x_val,
-            y_val,
-            verbose=1,
-            max_rounds=3,
-            level=2
-           )
-
-
-# In[13]:
-
-
-op.data
-
-
-# In[11]:
-
-
-with open('X.pickle', 'rb') as f:
-    X = pickle.load(f)
-with open('Y_multi.pickle', 'rb') as f:
-    Y = pickle.load(f)
-
-
-# In[12]:
-
-
-cut_v = round(X.shape[0] * 0.8)
-cut_t = round(X.shape[0] * 0.9)
-cut_x = round(X.shape[0])
-# cut_y = round(X.shape[0] * 0.11)
-x_train = X[:cut_v]
-y_train = Y[:cut_v]
-x_val = X[cut_v:cut_t]
-y_val = Y[cut_v:cut_t]
-x_test = X[cut_t:]
-y_test = Y[cut_t:]
-# x_test2 = X[cut_x:cut_y]
-# y_test2 = Y[cut_x:cut_y]
-
-
-# In[22]:
-
-
-y_val.shape
-
-
-# In[49]:
-
-
-with open('data.pickle', 'wb') as f:
-    pickle.dump(data, f)
-
-
-# In[43]:
-
-
-op = Optimizer(name="donn_optimizer", mode="regressor")
-
-
-# In[48]:
-
-
-op2 = op.optimize(x_train, 
-                   y_train, 
-                   x_test, 
-                   y_test, 
-                   x_val, 
-                   y_val,
-                   verbose=1,
-                   max_rounds=3,
-                   level=2
-                  )
-
-
-# In[47]:
-
-
-op2.data
-
-
-# In[49]:
-
-
-op2.data
-
-
-# In[50]:
-
-
-p = predict(x_test)
-
-
-# In[51]:
-
-
-p
-
-
-# In[52]:
-
-
-mean_absolute_error(p, y_test)
-
-
-# In[268]:
-
-
-accuracy_score(p.round(), np_utils.to_categorical(y_test))
-
-
-# In[229]:
-
-
-from pymongo import MongoClient
-import scipy.sparse as sp
-
-
-# In[232]:
-
-
-import utils_m
-
-
-# In[233]:
-
-
-client = MongoClient()
-db_stockml = client["db_stockml"]
-c_train_data_yahoofin = db_stockml["c_train_data_yahoofin"]
-
-l = "l_0_p5ds_abs"
-print(datetime.datetime.now())
-print("Using Label: %s" % l)
-raw = list(db_stockml.c_train_data_yahoofin.find({l:{"$exists":True}}))
-print("Prepping %s datapoints" % len(raw))
-a = raw[0]
-csr_a_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
-csr_a_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
-X = utils_m.add_sparse(csr_a_t2, csr_a_t1)
-y = [a[l]]
-for i in range(1,round(len(raw)/10)):
-
-    a = raw[i]
-    if len(a["t2_data"]) == 0 or len(a["t1_data"]) == 0:
-        continue
-    csr_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
-    csr_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
-    csr = utils_m.add_sparse(csr_t2, csr_t1)
-    x = utils_m.vstack_dim(X, csr)
-    if x == None:
-        continue
-    else:
-        X = x.tocsr()
-    y.append(a[l])
-
-client.close()
-
-
-# In[238]:
-
-
-def logist(x):
-    return 1/(1+np.exp(-x))
-
-
-# In[361]:
-
-
-Y = y_cont
-
-
-# In[345]:
-
-
-yc = []
-y_cont = []
-cut_h = np.mean(y) + (np.std(y)/8)
-cut_l = np.mean(y) - (np.std(y)/8)
-for i in range(0,len(y)):
-    y_cont.append(logist(abs(y[i]))+0.25)
-#     if y[i] > cut_h:
-#         yc.append("c")
-#     elif y[i] > cut_l:
-#         yc.append("b")
+# from sklearn.datasets import load_boston
+
+# X, Y = load_boston(return_X_y=True)
+
+# cut_v = round(X.shape[0] * 0.8)
+# cut_t = round(X.shape[0] * 0.9)
+# cut_x = round(X.shape[0])
+# # cut_y = round(X.shape[0] * 0.11)
+# x_train = X[:cut_v]
+# y_train = Y[:cut_v]
+# x_val = X[cut_v:cut_t]
+# y_val = Y[cut_v:cut_t]
+# x_test = X[cut_t:]
+# y_test = Y[cut_t:]
+
+# op = Optimizer(name="donn_optimizer", mode="regressor")
+
+# op.optimize(x_train,
+#             y_train,
+#             x_test,
+#             y_test,
+#             x_val,
+#             y_val,
+#             verbose=1,
+#             max_rounds=3,
+#             level=2
+#            )
+
+# op.data
+
+# with open('X.pickle', 'rb') as f:
+#     X = pickle.load(f)
+# with open('Y_multi.pickle', 'rb') as f:
+#     Y = pickle.load(f)
+
+# cut_v = round(X.shape[0] * 0.8)
+# cut_t = round(X.shape[0] * 0.9)
+# cut_x = round(X.shape[0])
+# # cut_y = round(X.shape[0] * 0.11)
+# x_train = X[:cut_v]
+# y_train = Y[:cut_v]
+# x_val = X[cut_v:cut_t]
+# y_val = Y[cut_v:cut_t]
+# x_test = X[cut_t:]
+# y_test = Y[cut_t:]
+# # x_test2 = X[cut_x:cut_y]
+# # y_test2 = Y[cut_x:cut_y]
+
+# y_val.shape
+
+# with open('data.pickle', 'wb') as f:
+#     pickle.dump(data, f)
+
+# op = Optimizer(name="donn_optimizer", mode="regressor")
+
+# op2 = op.optimize(x_train, 
+#                    y_train, 
+#                    x_test, 
+#                    y_test, 
+#                    x_val, 
+#                    y_val,
+#                    verbose=1,
+#                    max_rounds=3,
+#                    level=2
+#                   )
+
+# op2.data
+
+# op2.data
+
+# p = predict(x_test)
+
+# p
+
+# mean_absolute_error(p, y_test)
+
+# accuracy_score(p.round(), np_utils.to_categorical(y_test))
+
+# from pymongo import MongoClient
+# import scipy.sparse as sp
+
+# import utils_m
+
+# client = MongoClient()
+# db_stockml = client["db_stockml"]
+# c_train_data_yahoofin = db_stockml["c_train_data_yahoofin"]
+
+# l = "l_0_p5ds_abs"
+# print(datetime.datetime.now())
+# print("Using Label: %s" % l)
+# raw = list(db_stockml.c_train_data_yahoofin.find({l:{"$exists":True}}))
+# print("Prepping %s datapoints" % len(raw))
+# a = raw[0]
+# csr_a_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
+# csr_a_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
+# X = utils_m.add_sparse(csr_a_t2, csr_a_t1)
+# y = [a[l]]
+# for i in range(1,round(len(raw)/10)):
+
+#     a = raw[i]
+#     if len(a["t2_data"]) == 0 or len(a["t1_data"]) == 0:
+#         continue
+#     csr_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
+#     csr_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
+#     csr = utils_m.add_sparse(csr_t2, csr_t1)
+#     x = utils_m.vstack_dim(X, csr)
+#     if x == None:
+#         continue
 #     else:
+#         X = x.tocsr()
+#     y.append(a[l])
+
+# client.close()
+
+# def logist(x):
+#     return 1/(1+np.exp(-x))
+
+# Y = y_cont
+
+# yc = []
+# y_cont = []
+# cut_h = np.mean(y) + (np.std(y)/8)
+# cut_l = np.mean(y) - (np.std(y)/8)
+# for i in range(0,len(y)):
+#     y_cont.append(logist(abs(y[i]))+0.25)
+# #     if y[i] > cut_h:
+# #         yc.append("c")
+# #     elif y[i] > cut_l:
+# #         yc.append("b")
+# #     else:
+# #         yc.append("a")
+#     if y[i] > 0:
 #         yc.append("a")
-    if y[i] > 0:
-        yc.append("a")
-    else:
-        yc.append("b")
-Y = np.transpose([yc])
-y_cont = abs(np.transpose([y_cont]))
+#     else:
+#         yc.append("b")
+# Y = np.transpose([yc])
+# y_cont = abs(np.transpose([y_cont]))
 
+# with open('X.pickle', 'wb') as f:
+#     pickle.dump(X,f)
+# with open('Y_multi_labeled.pickle', 'wb') as f:
+#     pickle.dump(Y,f)
+# with open('Y_cont.pickle', 'wb') as f:
+#     pickle.dump(y_cont,f)
 
-# In[288]:
+# a = ["a", "b", "a", "b"]
+# le = LabelEncoder().fit(a)
+# le.transform(a)
 
-
-with open('X.pickle', 'wb') as f:
-    pickle.dump(X,f)
-with open('Y_multi_labeled.pickle', 'wb') as f:
-    pickle.dump(Y,f)
-with open('Y_cont.pickle', 'wb') as f:
-    pickle.dump(y_cont,f)
-
-
-# In[324]:
-
-
-a = ["a", "b", "a", "b"]
-le = LabelEncoder().fit(a)
-le.transform(a)
-
-
-# In[325]:
-
-
-le.classes_
+# le.classes_
 

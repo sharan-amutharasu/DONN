@@ -4,22 +4,19 @@
 # In[ ]:
 
 
-try:
-    import pytest
-    import os
-    import sys
-    from numpy import unique
+import pytest
+import os
+import sys
+from numpy import unique
 
-    from sklearn.metrics import accuracy_score, mean_absolute_error
+from sklearn.metrics import accuracy_score, mean_absolute_error
 
-    import donn
-    from donn import donn_tools
+import donn
+from donn import donn_tools
 
-    from sklearn.datasets import load_digits # Multi label classification
-    from sklearn.datasets import load_breast_cancer # Single label classificaiton
-    from sklearn.datasets import load_diabetes # Regression
-except ImportError:
-    print("Required modules not installed")
+from sklearn.datasets import load_digits # Multi label classification
+from sklearn.datasets import load_breast_cancer # Single label classificaiton
+from sklearn.datasets import load_diabetes # Regression
 
 
 # In[2]:

@@ -10,7 +10,7 @@ and is distributed under the MIT license.
 '''
 
 setup(name='donn',
-      version='1.1.3',
+      version='1.1.8',
       description='Deep Optimized Neural Networks',
       long_description=long_description,
       author='Sharan Amutharasu',
@@ -24,12 +24,8 @@ setup(name='donn',
                         'six>=1.9.0',
                         'pyyaml',
                         'h5py',
-                        'gc',
-                        'pickle',
-                        'scikit-learn>=0.19.0',
-                        'time',
-                        'string',
-                        'random'],
+                        'scikit-learn>=0.19.0'
+                        ],
       extras_require={
           'tests': ['pytest'],
       },

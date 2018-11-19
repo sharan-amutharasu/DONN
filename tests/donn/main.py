@@ -4,35 +4,44 @@
 # In[ ]:
 
 
-try:
-    import os
-    import itertools as it
-    import gc
-    import pickle
-    import numpy as np
+from . import donn_tools
+from . import layers
+import os
+import datetime
+import itertools as it
+import gc
+import pickle
+import numpy as np
 
-    from keras.models import Sequential
-    from keras.models import load_model as keras_load_model
-    from keras import optimizers
-    from keras.utils import np_utils
-    from keras import backend as K
 
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import accuracy_score, mean_absolute_error
-    
-    from . import donn_tools
-    from . import layers
-except ImportError:
-    print("Required modules not installed")
+# In[2]:
+
+
+from keras.constraints import maxnorm
+from keras.layers import Activation, Dense, Dropout
+from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
+from keras.models import Sequential
+from keras.models import load_model as keras_load_model
+from keras import regularizers, optimizers, metrics
+# from keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
+from keras import backend as K
+from keras.utils import np_utils
+
+
+# In[3]:
+
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, mean_absolute_error
 
 
 # In[4]:
 
 
-allowed_layers = ["input", "hidden", "activation", "output", "dropout"]
+allowed_layers = ["input", "hidden", "activation", "output"]
 
 
-# In[ ]:
+# In[5]:
 
 
 class Optimizer(object):
@@ -53,7 +62,7 @@ class Optimizer(object):
     """
     
     # Initialize instance
-    def __init__(self, mode, name="donn_optimizer", directory=None, layers=None, parameters=None, parameter_precisions=None):
+    def __init__(self, mode, name="donn_optimizer", directory=os.getcwd(), layers=None, parameters=None, parameter_precisions=None):
         
         # If data does not exist for the current instance name, create it
         self.data_filename = str(name + "-data.pickle")
@@ -65,12 +74,11 @@ class Optimizer(object):
             self.data = {"stage":0}
             
         if self.data["stage"] == 0:
-            self.data = {"combs":{}, "combs_comp":{}, "best":{"best":{}}, "grids":{}, "stage":0, "completed_rounds":0}
+            self.data = {"combs":{}, "combs_comp":{}, "best":{"best":{}}, "grids":{}, "stage":0}
+            self.data["optimized"] = False
             self.data["name"] = name
-            if directory == None:
-                self.data["directory"] = os.getcwd()
-            else:
-                self.data["directory"] = directory
+            self.data["directory"] = directory
+            
             
             ## Check the provided layers
             if layers is not None:
@@ -81,13 +89,13 @@ class Optimizer(object):
                 for i in range(0,len(layers)):
                     if layers[i] not in allowed_layers:
                         raise ValueError("Unrecognised type of layer: %s " % layer)
-                    if i == len(layers)-1 and layers[i] != "output":
+                    if i == layers[len(layers)-1] and layers[i] != "output":
                         raise ValueError("The last layer must be 'output'. It cannot be %s " % layers[len(layers)-1])
-                    if i != len(layers)-1 and layers[i] == "output":
+                    if i != layers[len(layers)-1] and layers[i] == "output":
                         raise ValueError("Only the last layer can be 'output'")
                 self.data["layers"] = layers
             else:
-                self.data["layers"] = ["input", "activation", "hidden", "activation", "dropout", "hidden", "activation", "dropout", "output"]
+                self.data["layers"] = ["input", "activation", "hidden", "activation", "hidden", "activation", "output"]
             
             ## check and store parameters
             max_units_for_layers = []
@@ -169,8 +177,20 @@ class Optimizer(object):
                                                        "min":self.data["parameter_precisions"]["precision_dropout_rate"]
                                                       }
             self.data["base_range"]["output_activation_function"] = {"range":self.data["parameters"]["output_activation_function_options"]}
-                
             
+                            
+            
+            ## Production
+#             self.data['base_range'] = {"input_layer_units":{"range":[1,500], "min":1},
+#                                "hidden_layer_1_units":{"range":[1,500], "min":1},
+#                                "hidden_layer_2_units":{"range":[1,500], "min":1},
+#                                "hidden_layer_3_units":{"range":[1,500], "min":1},
+#                                "activation":{"range":['tanh', 'elu']},
+#                                "optimizer":{"range":['RMSprop', 'Adam']},
+#                                "batch_size":{"range":[64], "min":8},
+#                                "epochs":{"range":[10], "min":2},
+#                                "dropout_rate":{"range":[0], "min":0.05}
+#                               }
             if mode.lower() == "regressor":
                 self.data["mode"] = 'regressor'
             elif mode.lower() == "classifier":
@@ -183,84 +203,8 @@ class Optimizer(object):
         donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         print("Optimizer created")
     
-    def get_default_values(self, param, typ):
-        """
-        Returns the default values for parameters
-        """
-        if typ == "datatype" and "layer" in param and "units" in param:
-            return "int"
-        if param == "input" or param == "hidden" or param == "output":
-            if typ == "range":
-                return [1,100]
-            if typ == "min":
-                return 5
-            if typ == "datatype":
-                return "int"
-        elif param == "activation" or param == "dropout":
-            if typ == "range":
-                return [1,1]
-            if typ == "min":
-                return 1
-            if typ == "datatype":
-                return "int"
-        elif param == "activation_function":
-            if typ == "range":
-                return ['relu']
-            if typ == "min":
-                return None
-            if typ == "datatype":
-                return "str"
-        elif param == "optimizer":
-            if typ == "range":
-                return ['RMSprop']
-            if typ == "min":
-                return None
-            if typ == "datatype":
-                return "str"
-        elif param == "batch_size":
-            if typ == "range":
-                return [128, 128]
-            if typ == "min":
-                return 8
-            if typ == "datatype":
-                return "int"
-        elif param == "epochs":
-            if typ == "range":
-                return [5, 50]
-            if typ == "min":
-                return 10
-            if typ == "datatype":
-                return "int"
-        elif param == "dropout_rate":
-            if typ == "range":
-                return [0, 0.4]
-            if typ == "min":
-                return 0.1
-            if typ == "datatype":
-                return "float"
-        elif param == "output_activation_function":
-            if typ == "range":
-                return ['sigmoid']
-            if typ == "min":
-                return None
-            if typ == "datatype":
-                return "str"
-        else:
-            raise ValueError("Unrecongised parameter: %s" % param)
-    
-    ## Testing
 #     def get_default_values(self, param, typ):
-#         if param == "input":
-#             if typ == "range":
-#                 return [1,100]
-#             if typ == "min":
-#                 return 1
-#         elif param == "hidden":
-#             if typ == "range":
-#                 return [1,1]
-#             if typ == "min":
-#                 return 1
-#         elif param == "output":
+#         if param == "input" or param == "hidden" or param == "output":
 #             if typ == "range":
 #                 return [1,100]
 #             if typ == "min":
@@ -272,27 +216,27 @@ class Optimizer(object):
 #                 return 1
 #         elif param == "activation_function":
 #             if typ == "range":
-#                 return ['tanh']
+#                 return ['sigmoid', 'softmax', 'relu']
 #             else:
 #                 return None
 #         elif param == "optimizer":
 #             if typ == "range":
-#                 return ['RMSprop']
+#                 return ['SGD', 'RMSprop', 'Adagrad']
 #             else:
 #                 return None
 #         elif param == "batch_size":
 #             if typ == "range":
-#                 return [64, 64]
+#                 return [64, 256]
 #             if typ == "min":
 #                 return 8
 #         elif param == "epochs":
 #             if typ == "range":
-#                 return [2, 2]
+#                 return [5, 100]
 #             if typ == "min":
 #                 return 2
 #         elif param == "dropout_rate":
 #             if typ == "range":
-#                 return [0, 0]
+#                 return [0, 0.4]
 #             if typ == "min":
 #                 return 0.1
 #         elif param == "output_activation_function":
@@ -303,6 +247,61 @@ class Optimizer(object):
 #         else:
 #             raise ValueError("Unrecongised parameter: %s" % param)
     
+    ## Testing
+    def get_default_values(self, param, typ):
+        if param == "input":
+            if typ == "range":
+                return [1,100]
+            if typ == "min":
+                return 1
+        elif param == "hidden":
+            if typ == "range":
+                return [1,1]
+            if typ == "min":
+                return 1
+        elif param == "output":
+            if typ == "range":
+                return [1,100]
+            if typ == "min":
+                return 1
+        elif param == "activation" or param == "dropout":
+            if typ == "range":
+                return [1,1]
+            if typ == "min":
+                return 1
+        elif param == "activation_function":
+            if typ == "range":
+                return ['tanh']
+            else:
+                return None
+        elif param == "optimizer":
+            if typ == "range":
+                return ['RMSprop']
+            else:
+                return None
+        elif param == "batch_size":
+            if typ == "range":
+                return [64, 64]
+            if typ == "min":
+                return 8
+        elif param == "epochs":
+            if typ == "range":
+                return [2, 2]
+            if typ == "min":
+                return 2
+        elif param == "dropout_rate":
+            if typ == "range":
+                return [0, 0]
+            if typ == "min":
+                return 0.1
+        elif param == "output_activation_function":
+            if typ == "range":
+                return ['sigmoid']
+            else:
+                return None
+        else:
+            raise ValueError("Unrecongised parameter: %s" % param)
+    
     
     
     ## Testing end
@@ -312,10 +311,8 @@ class Optimizer(object):
         """
         From the label data,
         determines the number of output cells
-        required in the model and stores it
+        required in the model and store it
         """
-        
-        ## Determine number of target vectors
         try:
             number_y_columns = y_train.shape[1]
         except AttributeError:
@@ -325,8 +322,6 @@ class Optimizer(object):
                 raise TypeError("Unable to determine label data shape")
         except IndexError:
             number_y_columns = 1
-        
-        ## Setup test metric data
         if self.data["mode"] == "classifier":
             if test_metric_direction != None:
                 if test_metric_direction != "positive" and test_metric_direction != "negative":
@@ -338,8 +333,6 @@ class Optimizer(object):
                 unique = np.unique(y_train)
                 if len(unique) < 2:
                     raise ValueError("minimum two unique labels required in training data")
-                    
-                ## Check number of labels
                 elif len(unique) == 2:
                     self.data["classifier_type"] = "single"
                     if 0 in unique and 1 in unique:
@@ -348,8 +341,6 @@ class Optimizer(object):
                         if y_val is not None:
                             self.y_val = y_val
                         self.data["label_encoded"] = False
-                        
-                    ## Encode labels
                     else:
                         label_encoder = LabelEncoder().fit(y_train)
                         self.y_train = label_encoder.transform(y_train)
@@ -358,8 +349,7 @@ class Optimizer(object):
                             self.y_val = label_encoder.transform(y_val)
                         self.data["label_encoded"] = True
                         self.data["label_encoder"] = label_encoder
-                    
-                    ## Define loss and target metric for the model
+                        
                     self.data["output_layer_units"] = 1
                     if loss != None:
                         self.loss = loss
@@ -373,12 +363,10 @@ class Optimizer(object):
                         self.test_metric = test_metric
                     else:
                         self.test_metric = accuracy_score
-                
-                ## More than 2 labels
+                    ### Test for non 1-0 labels
                 else:
                     self.data["classifier_type"] = "multi"
                     try:
-                        ## Convert target to categorical values
                         self.y_train = np_utils.to_categorical(y_train)
                         self.y_test = np_utils.to_categorical(y_test)
                         if y_val is not None:
@@ -386,7 +374,6 @@ class Optimizer(object):
                         self.data["label_encoded"] = False
                         self.data["output_layer_units"] = self.y_train.shape[1]
                     except ValueError:
-                        ## Encode target vectors
                         label_encoder = LabelEncoder().fit(y_train)
                         self.y_train = np_utils.to_categorical(label_encoder.transform(y_train))
                         self.y_test = np_utils.to_categorical(label_encoder.transform(y_test))
@@ -395,8 +382,6 @@ class Optimizer(object):
                         self.data["label_encoded"] = True
                         self.data["label_encoder"] = label_encoder
                         self.data["output_layer_units"] = self.y_train.shape[1]
-                    
-                    ## Define loss and target metric for the network
                     if loss != None:
                         self.loss = loss
                     else:
@@ -409,8 +394,6 @@ class Optimizer(object):
                         self.test_metric = test_metric
                     else:
                         self.test_metric = accuracy_score
-                        
-            ## If more than 1 target vectors exist
             elif number_y_columns > 1:
                 self.data["classifier_type"] = "multi"
                 self.y_train = y_train
@@ -431,6 +414,7 @@ class Optimizer(object):
                     self.test_metric = test_metric
                 else:
                     self.test_metric = accuracy_score
+            print(self.data["classifier_type"])
                 
                         
         elif self.data["mode"] == "regressor":
@@ -460,13 +444,33 @@ class Optimizer(object):
                     self.test_metric = mean_absolute_error
             else:
                 raise ValueError("Unacceptable number of output values, %s, for regressor mode. Only one value allowed" % number_y_columns)
-        
-        if self.data["stage"] == 1:
-            self.data["stage"] = 2
-        
+                
+#         if type(self.y_test) is np.ndarray:
+#             if self.y_test.dtype == 'int32':
+#                 self.y_test = self.y_test.astype('float32')
+        self.data["stage"] = 2
         ## Save data to local file
+        print(self.metric)
+        print(self.test_metric)
+        print(self.loss)
+        print(self.data["output_layer_units"])
         donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return None
+        
+    
+    def get_param_type(self, param):
+        """
+        Returns the datatype for a given parameter
+        """
+        if "layer" in param:
+            return "int"
+        if param == "batch_size" or param == "epochs":
+            return "int"
+        if param == "dropout_rate":
+            return "float"
+        if param == "activation_function" or param == "output_activation_function" or param == "optimizer":
+            return "str"
+        raise ValueError("unrecognized paramaeter: %s" % param)
 
     def get_optimizer(self, name='Adadelta'):
         """
@@ -520,9 +524,10 @@ class Optimizer(object):
             else:
                 count = self.data["layers"][:i].count(self.data["layers"][i])
                 if i == len(self.data["layers"]) - 1:
-                    model = layer.add_to_model(model, params, count+1, output_layer_units=self.data["output_layer_units"], mode=self.data["mode"], layers=self.data["layers"])
+                    model = layer.add_to_model(model, params, count+1, output_layer_units=self.data["output_layer_units"], mode=self.data["mode"])
                 else:
-                    model = layer.add_to_model(model, params, count+1, layers=self.data["layers"])
+                    model = layer.add_to_model(model, params, count+1)
+        
         ## Compile the model
         if self.data["mode"] == "classifier":
             model.compile(loss=loss,
@@ -531,6 +536,7 @@ class Optimizer(object):
         elif self.data["mode"] == "regressor":
             model.compile(loss=loss,
                           optimizer=self.get_optimizer(params["optimizer"]))
+        
         ## Fit the model with or without validation data
         if x_val is not None and y_val is not None:
             model.fit(x_train, 
@@ -555,7 +561,6 @@ class Optimizer(object):
             model.save(os.path.join(self.data["directory"], 
                                     str(self.data["name"] + "-base_model.h5")))
             self.data["stage"] = 3
-            donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
         return model
         
     
@@ -564,7 +569,7 @@ class Optimizer(object):
         Given a range for the values of the parameters,
         Returns the list of options for combinations
         """
-        typ = self.get_default_values(p, typ="datatype")
+        typ = self.get_param_type(p)
 #         rn = self.data["base_range"][p]
         if typ == "int" or typ == "float":
             if len(rn["range"]) == 0 or len(rn["range"]) > 2:
@@ -667,11 +672,11 @@ class Optimizer(object):
         for comb in combs:
             c = {}
             for p in comb.keys():
-                if p.startswith("input_layer") or p.startswith("hidden_layer") or self.get_default_values(p, typ="datatype") == "int":
+                if p.startswith("input_layer") or p.startswith("hidden_layer") or self.get_param_type(p) == "int":
                     c[p] = int(comb[p])
-                elif self.get_default_values(p, typ="datatype") == "str":
+                elif self.get_param_type(p) == "str":
                     c[p] = comb[p]
-                elif self.get_default_values(p, typ="datatype") == "float":
+                elif self.get_param_type(p) == "float":
                     c[p] = float(comb[p])
             r.append(c)
         return r
@@ -694,7 +699,7 @@ class Optimizer(object):
         """
         new = {}
         for p in grid.keys():
-            typ = self.get_default_values(p, typ="datatype")
+            typ = self.get_param_type(p)
             if typ == "str":
                 new[p] = {"range":[b_params[p]], "type":typ}
             else:
@@ -806,7 +811,6 @@ class Optimizer(object):
         
         ## Check if all combinations have been tried
         if len(self.data["combs"][n]) == sum(self.data["combs_comp"][n]):
-            self.data["completed_rounds"] = int(n)
             return self
 #         print("Round grid:")
 #         print(self.data["grids"][n])
@@ -821,6 +825,7 @@ class Optimizer(object):
             
             if self.verbose >= 1:
                 print("Trying combination: %s" % str(i+1))
+#                 print(datetime.datetime.now())
             if self.verbose >= 2:
                 print(comb)
             model, score = self.run_comb(comb)
@@ -830,23 +835,33 @@ class Optimizer(object):
             ## If no best scores for the round are present, add score to best scores
             if len(self.data["best"][n]) < self.level + 1:
                 if str(score) not in self.data["best"][n].keys():
+                    print("Best1")
+                    print(self.data["best"][n])
+                    print(self.level)
+                    print(score)
                     self.data["best"][n][str(score)] = comb
             ## If best scores for the round are present, compare with the least score amongst them and store the current score if it is better than the least
             else:
                 if self.data["test_metric_direction"] == "positive":
                     min_score = sorted(map(float, self.data["best"][n].keys()))[0]
                     if score > min_score:
+                        print("Best2")
                         self.data["best"][n][str(score)] = comb
                         del self.data["best"][n][str(min_score)]
                 elif self.data["test_metric_direction"] == "negative":
                     max_score = sorted(map(float, self.data["best"][n].keys()))[len(self.data["best"][n].keys()) - 1]
                     if score < max_score:
+                        print("Best2")
                         self.data["best"][n][str(score)] = comb
                         del self.data["best"][n][str(max_score)]
             
             ## If no overall best scores are present, add score to best scores
             if len(self.data["best"]["best"]) < self.level + 1:
                 if str(score) not in self.data["best"]["best"].keys():
+                    print("Best3")
+                    print(self.data["best"]["best"])
+                    print(self.level)
+                    print(score)
                     self.data["best"]["best"][str(score)] = comb
                     model.save(os.path.join(self.data["directory"], 
                                             str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -857,6 +872,7 @@ class Optimizer(object):
                 if self.data["test_metric_direction"] == "positive":
                     min_score = sorted(map(float, self.data["best"]["best"].keys()))[0]
                     if score > min_score:
+                        print("Best4")
                         self.data["best"]["best"][str(score)] = comb
                         model.save(os.path.join(self.data["directory"], 
                                                 str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -866,14 +882,10 @@ class Optimizer(object):
                                                    str(self.data["name"] + "-model-" + str(min_score) + "-s.h5")))
                         except FileNotFoundError:
                             pass
-                        if self.verbose >= 1:
-                            print("New best parameter combination found with score: %s" % score)
-                        if self.verbose >= 2:
-                            print("Combination: ")
-                            print(comb)
                 elif self.data["test_metric_direction"] == "negative":
                     max_score = sorted(map(float, self.data["best"]["best"].keys()))[len(self.data["best"][n].keys()) - 1]
                     if score < max_score:
+                        print("Best4")
                         self.data["best"]["best"][str(score)] = comb
                         model.save(os.path.join(self.data["directory"], 
                                                 str(self.data["name"] + "-model-" + str(score) + "-s.h5")))
@@ -883,11 +895,6 @@ class Optimizer(object):
                                                    str(self.data["name"] + "-model-" + str(max_score) + "-s.h5")))
                         except FileNotFoundError:
                             pass
-                        if self.verbose >= 1:
-                            print("New best parameter combination found with score: %s" % score)
-                        if self.verbose >= 2:
-                            print("Combination: ")
-                            print(comb)
 
             self.data["combs_comp"][n][i] = True
             donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
@@ -901,12 +908,12 @@ class Optimizer(object):
         if self.data["stage"] == 4:
             self.data["stage"] = 5
         if len(self.data["combs"][n]) == 1:
+            self.data["optimized"] = True
             self.data["stage"] = 9
-        self.data["completed_rounds"] = n
-        donn_tools.save_data(self.data, self.data["directory"], self.data_filename)
+        
         return self
     
-    def optimize(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, loss=None, metric=None, test_metric=None, test_metric_direction=None, verbose=1, max_rounds=5, level=2):
+    def optimize(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, loss=None, metric=None, test_metric=None, test_metric_direction=None, verbose=1, max_rounds=1, level=1):
         """Main optimization function.
         Checks data to find the status of optimization, 
         Runs each round of optimization
@@ -931,26 +938,37 @@ class Optimizer(object):
         print("Initializing optimizer settings")
         self.initialize_mode_settings(y_train, y_test, y_val, loss, metric, test_metric, test_metric_direction)
         self.x_train = x_train
+#         self.y_train = y_train
         self.x_test = x_test
+#         self.y_test = y_test
         self.x_val = x_val
+#         self.y_val = y_val
+#         self.loss = loss
+#         self.metric = metric
+#         self.test_metric = test_metric
         self.verbose = verbose
         self.level = level
         self.data_filename = str(self.data["name"] + "-data.pickle")
                 
         
         ## Check how many rounds and combinations have been run
-        c_round = self.data["completed_rounds"]
+        rounds = list(map(int, self.data["combs"].keys()))
+        if len(rounds) == 0:
+            c_round = 1
+        else:
+            rounds.sort()
+            c_round = rounds[len(rounds)-1]
         
         ## Run each round of optimization
-        while c_round + 1 <= max_rounds:
-            print("Running round: %s out of %s" % (c_round + 1, max_rounds))
-            self.run_round(c_round + 1)
-            gc.collect()
-            c_round += 1
-            if self.data["stage"] == 9:
+        while c_round <= max_rounds:
+            if self.data["optimized"] == True:
                 print("Best parameters found")
                 break
-        print("%s rounds of optimization completed" % str(c_round))
+            print("Running round: %s" % c_round)
+            self.run_round(c_round)
+            gc.collect()
+            c_round += 1
+        print("%s rounds of optimization completed" % str(c_round-1))
         return self
         
     def get_data(self):
@@ -960,7 +978,7 @@ class Optimizer(object):
         return self.data
 
 
-# In[ ]:
+# In[6]:
 
 
 def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), probabilities=False, use_one_model=False):
@@ -981,7 +999,8 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
     
     ## If no training has been done output information
     if data["stage"] <= 2:
-        raise ValueError("Optimizer cannot predict before training")
+        print("Optimizer cannot predict before training")
+        return None
     
     ## if the firt model has been trained and no best model has been found use the first model
     elif data["stage"] == 3:
@@ -990,7 +1009,7 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
         prediction = model.predict(x_predict)
         return model.predict(x_predict)
 
-    ## if best models have been found, use them to make predictions
+    ## if best models have been found, use them
     else:
         models = {}
         for key in data["best"]["best"].keys():
@@ -1006,7 +1025,8 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
                 continue
 
         if len(models) == 0:
-            raise ValueError("no stored models found")
+            print("no stored models found")
+            return None
         
         if use_one_model == True:
             if data["test_metric_direction"] == "positive":
@@ -1014,7 +1034,6 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
             else:
                 key = str(sorted(map(float, data["best"]["best"].keys()))[len(data["best"]["best"]) - 1])
             prediction = models[key]["model"].predict(x_predict)
-            
         ## Return average of the predictions from each model weighted by the model scores
         else:
             i = 0
@@ -1037,8 +1056,7 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
                 prediction = total
             else:
                 prediction = total / denom
-        
-        ## Process prediction based on encoding and mode
+            
         if data["mode"] == "classifier":
             if probabilities == True:
                 if data["label_encoded"] == True:
@@ -1050,4 +1068,159 @@ def predict(x_predict, optimizer_name="donn_optimizer", directory=os.getcwd(), p
             if data["label_encoded"] == True:
                 prediction = data["label_encoder"].inverse_transform(prediction)
         return prediction
+
+
+# In[7]:
+
+
+# from sklearn.datasets import load_boston
+
+# X, Y = load_boston(return_X_y=True)
+
+# cut_v = round(X.shape[0] * 0.8)
+# cut_t = round(X.shape[0] * 0.9)
+# cut_x = round(X.shape[0])
+# # cut_y = round(X.shape[0] * 0.11)
+# x_train = X[:cut_v]
+# y_train = Y[:cut_v]
+# x_val = X[cut_v:cut_t]
+# y_val = Y[cut_v:cut_t]
+# x_test = X[cut_t:]
+# y_test = Y[cut_t:]
+
+# op = Optimizer(name="donn_optimizer", mode="regressor")
+
+# op.optimize(x_train,
+#             y_train,
+#             x_test,
+#             y_test,
+#             x_val,
+#             y_val,
+#             verbose=1,
+#             max_rounds=3,
+#             level=2
+#            )
+
+# op.data
+
+# with open('X.pickle', 'rb') as f:
+#     X = pickle.load(f)
+# with open('Y_multi.pickle', 'rb') as f:
+#     Y = pickle.load(f)
+
+# cut_v = round(X.shape[0] * 0.8)
+# cut_t = round(X.shape[0] * 0.9)
+# cut_x = round(X.shape[0])
+# # cut_y = round(X.shape[0] * 0.11)
+# x_train = X[:cut_v]
+# y_train = Y[:cut_v]
+# x_val = X[cut_v:cut_t]
+# y_val = Y[cut_v:cut_t]
+# x_test = X[cut_t:]
+# y_test = Y[cut_t:]
+# # x_test2 = X[cut_x:cut_y]
+# # y_test2 = Y[cut_x:cut_y]
+
+# y_val.shape
+
+# with open('data.pickle', 'wb') as f:
+#     pickle.dump(data, f)
+
+# op = Optimizer(name="donn_optimizer", mode="regressor")
+
+# op2 = op.optimize(x_train, 
+#                    y_train, 
+#                    x_test, 
+#                    y_test, 
+#                    x_val, 
+#                    y_val,
+#                    verbose=1,
+#                    max_rounds=3,
+#                    level=2
+#                   )
+
+# op2.data
+
+# op2.data
+
+# p = predict(x_test)
+
+# p
+
+# mean_absolute_error(p, y_test)
+
+# accuracy_score(p.round(), np_utils.to_categorical(y_test))
+
+# from pymongo import MongoClient
+# import scipy.sparse as sp
+
+# import utils_m
+
+# client = MongoClient()
+# db_stockml = client["db_stockml"]
+# c_train_data_yahoofin = db_stockml["c_train_data_yahoofin"]
+
+# l = "l_0_p5ds_abs"
+# print(datetime.datetime.now())
+# print("Using Label: %s" % l)
+# raw = list(db_stockml.c_train_data_yahoofin.find({l:{"$exists":True}}))
+# print("Prepping %s datapoints" % len(raw))
+# a = raw[0]
+# csr_a_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
+# csr_a_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
+# X = utils_m.add_sparse(csr_a_t2, csr_a_t1)
+# y = [a[l]]
+# for i in range(1,round(len(raw)/10)):
+
+#     a = raw[i]
+#     if len(a["t2_data"]) == 0 or len(a["t1_data"]) == 0:
+#         continue
+#     csr_t2 = sp.csr_matrix((a["t2_data"], a["t2_indices"], a["t2_indptr"]))
+#     csr_t1 = sp.csr_matrix((a["t1_data"], a["t1_indices"], a["t1_indptr"]))
+#     csr = utils_m.add_sparse(csr_t2, csr_t1)
+#     x = utils_m.vstack_dim(X, csr)
+#     if x == None:
+#         continue
+#     else:
+#         X = x.tocsr()
+#     y.append(a[l])
+
+# client.close()
+
+# def logist(x):
+#     return 1/(1+np.exp(-x))
+
+# Y = y_cont
+
+# yc = []
+# y_cont = []
+# cut_h = np.mean(y) + (np.std(y)/8)
+# cut_l = np.mean(y) - (np.std(y)/8)
+# for i in range(0,len(y)):
+#     y_cont.append(logist(abs(y[i]))+0.25)
+# #     if y[i] > cut_h:
+# #         yc.append("c")
+# #     elif y[i] > cut_l:
+# #         yc.append("b")
+# #     else:
+# #         yc.append("a")
+#     if y[i] > 0:
+#         yc.append("a")
+#     else:
+#         yc.append("b")
+# Y = np.transpose([yc])
+# y_cont = abs(np.transpose([y_cont]))
+
+# with open('X.pickle', 'wb') as f:
+#     pickle.dump(X,f)
+# with open('Y_multi_labeled.pickle', 'wb') as f:
+#     pickle.dump(Y,f)
+# with open('Y_cont.pickle', 'wb') as f:
+#     pickle.dump(y_cont,f)
+
+# a = ["a", "b", "a", "b"]
+# le = LabelEncoder().fit(a)
+# le.transform(a)
+
+# le.classes_
 
