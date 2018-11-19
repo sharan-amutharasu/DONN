@@ -261,8 +261,7 @@ Predictions: Numpy array of same length as 'x_predict' (If probabilities=False)
 Classes, Prediction_probabilites: List of class names, Numpy array of same length as 'x_predict' (If probabilities=False)
 
 
-That should be plenty to get started with DONN.
-Enjoy!
+#### That should be plenty to get started with DONN. Enjoy!
 
 ## Contributors
 Sharan Amutharasu - Author

@@ -4,12 +4,9 @@
 # In[4]:
 
 
-try:
-    from keras.layers import Activation, Dense, Dropout
-    from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
-    from keras import regularizers
-except ImportError:
-    print("Required modules not installed")
+from keras.layers import Activation, Dense, Dropout
+from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
+from keras import regularizers
 
 
 # In[5]:

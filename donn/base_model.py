@@ -4,15 +4,12 @@
 # In[ ]:
 
 
-try:
-    from keras.models import Sequential
-    from keras.layers import Dense
-    from keras import regularizers
-    from keras.utils import to_categorical
+from keras.models import Sequential
+from keras.layers import Dense
+from keras import regularizers
+from keras.utils import to_categorical
 
-    from sklearn.metrics import accuracy_score, mean_absolute_error
-except ImportError:
-    print("Required modules not installed")
+from sklearn.metrics import accuracy_score, mean_absolute_error
 
 
 # In[2]:
