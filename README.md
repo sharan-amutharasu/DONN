@@ -5,9 +5,9 @@
 
 Machine learning has unarguably been, the biggest contribution of data science to modern science, eliminating the need for human decision making in many processes.
 
-While the field has made giant strides in the recent years, an area of the whole problem that has started consuming increasingly larger resources is the optimization. This involves finding the ideal settings and/or initial conditions for algorithms being used, called parameters and hyper parameters.
+While the field has made giant strides in the recent years, an area of the whole problem that has started consuming increasingly larger resources is optimization. This involves finding the ideal settings and/or initial conditions for the algorithms being used, called parameters and hyper parameters.
 
-The heuristic nature of this process has dampened the extent of automation possible for novice users. But since it is "machine" learning, it is a problem that needs to be addressed.
+The heuristic nature of this process has dampened the extent of automation possible for novice users. But since it is "machine" learning after all, it is a problem that needs to be addressed.
 
 While there are some efforts being made in this direction, those that deal with deep learning algorithms are even fewer.
 Having failed at using these few available options, I decided to build one that made things easier for a project involving deep learning.
