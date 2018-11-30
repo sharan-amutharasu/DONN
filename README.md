@@ -3,16 +3,12 @@
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/sharan-amutharasu/DONN/blob/master/LICENSE)
 
-Machine learning has unarguably been, the biggest contribution of data science to modern science, eliminating the need for human decision making in many processes.
+An area of machine learning that is consuming increasingly larger resources is optimization. This involves finding the ideal settings and/or initial conditions for the algorithms being used, called parameters and hyper parameters. The heuristic nature of this process has dampened the extent of automation possible for novice users. 
 
-While the field has made giant strides in the recent years, an area of the whole problem that has started consuming increasingly larger resources is optimization. This involves finding the ideal settings and/or initial conditions for the algorithms being used, called parameters and hyper parameters.
+While there are some efforts being made in this direction, those that deal with deep learning algorithms while being open source are very few.
+Having failed at using some of the available options for a recent project, I decided to build one myself.
 
-The heuristic nature of this process has dampened the extent of automation possible for novice users. But since it is "machine" learning after all, it is a problem that needs to be addressed.
-
-While there are some efforts being made in this direction, those that deal with deep learning algorithms are even fewer.
-Having failed at using these few available options, I decided to build one that made things easier for a project involving deep learning.
-
-And, in case the same could be useful for others, I decided to share a more generic version and this is the resulting product of that aspiration.
+And, in case it could be useful for others, here is a more generic version of the same.
 
 If you do use it and run into any problems during the installation or usage, or have some feature requests, please report your problem (only) as an "issue" in this github repository and hopefully, help should be on its way.
 
@@ -20,7 +16,7 @@ Feel free to make your own contributions. Contributions are particularly welcome
 1. Memory and time optimization, specifically in the network training process
 2. Support for more network types and layers (specifically, RNN and Convolutional layers)
 
-DONN is built on TensorFlow / Theano / CNTK (neural network backend engines) + Keras (frontend), and is compatible with python 3.
+DONN is built on TensorFlow / Theano / CNTK (neural network backend engines) + Keras (frontend of backend), and is compatible with python 3. Thanks and shoutouts to all their contributors.
 
 ## Installation
 
